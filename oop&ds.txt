@@ -1,0 +1,156 @@
+#include <iostream>
+#include <queue>
+#include <list>
+#include <random>
+#include <string>
+
+using namespace std;
+
+enum class Priority {
+    Low,
+    High
+};
+
+struct Customer {
+    int Id;
+    string Name;
+    int Age;
+    bool premiumAccount;
+    Priority PeriorityLevel;
+    int WaitingTime; // Represented in minutes
+    int ServiceTime; // Represented in minutes
+};
+
+struct Teller {
+    int Id;
+    string Name;
+    bool Status;
+};
+
+void CalculateAndDisplayMetrics(queue<Customer>& customers, queue<Customer>& priorityCustomers) {
+    int totalWaitingTime = 0;
+    int totalServiceTime = 0;
+    int totalCustomers = customers.size() + priorityCustomers.size();
+
+    // Process customers queue
+    while (!customers.empty()) {
+        Customer& customer = customers.front();
+        totalWaitingTime += customer.WaitingTime;
+        totalServiceTime += customer.ServiceTime;
+        customers.pop();
+    }
+
+    // Process priority customers queue
+    while (!priorityCustomers.empty()) {
+        Customer& customer = priorityCustomers.front();
+        totalWaitingTime += customer.WaitingTime;
+        totalServiceTime += customer.ServiceTime;
+        priorityCustomers.pop();
+    }
+
+    if (totalCustomers > 0) {
+        // Calculate metrics only if totalCustomers is not zero
+        // Average waiting time
+        double averageWaitingTime = static_cast<double>(totalWaitingTime) / totalCustomers;
+
+        // Average service time
+        double averageServiceTime = static_cast<double>(totalServiceTime) / totalCustomers;
+
+        // Teller utilization rate (assuming 60 minutes per hour)
+        double utilizationRate = (static_cast<double>(totalServiceTime) / (15.0 * totalCustomers)) * 100.0; // Assuming each teller works 15 minutes per hour
+
+        // Display metrics
+        cout << "Average Waiting Time: " << averageWaitingTime << " minutes\n";
+        cout << "Average Service Time: " << averageServiceTime << " minutes\n";
+        cout << "Teller Utilization Rate: " << utilizationRate << "%\n";
+    }
+    else {
+        cout << "No customers served. Metrics cannot be calculated.\n";
+    }
+}
+int main() {
+    queue<Customer> customersQueue;
+    queue<Customer> priorityCustomers;
+
+    cout << "Enter the number of customers: ";
+    int numOfCustomers;
+    cin >> numOfCustomers;
+
+    // Enqueue customers
+    for (int i = 0; i < numOfCustomers; i++) {
+        Customer c;
+        c.Id = i;
+
+        cout << "Enter customer #" << i + 1 << " name: ";
+        cin >> c.Name;
+
+        cout << "Enter customer #" << i + 1 << " age: ";
+        cin >> c.Age;
+
+        cout << "Does customer #" << i + 1 << " have a premium account? (yes/no): ";
+        string premiumAccountStr;
+        cin >> premiumAccountStr;
+        c.premiumAccount = (premiumAccountStr == "yes");
+
+        if (c.Age > 65 || c.premiumAccount) {
+            c.PeriorityLevel = Priority::High;
+            priorityCustomers.push(c);
+        }
+        else {
+            c.PeriorityLevel = Priority::Low;
+            customersQueue.push(c);
+        }
+    }
+
+    // LinkedList to manage tellers
+    list<Teller> tellers;
+    int j = 1;
+    while (true) {
+        Teller teller;
+        teller.Id = j;
+
+        cout << "Enter Teller Name: ";
+        cin >> teller.Name;
+
+        cout << "Is Teller #" << j << " busy? (yes/no): ";
+        string statusStr;
+        cin >> statusStr;
+        teller.Status = (statusStr == "yes");
+
+        tellers.push_back(teller);
+
+        cout << "Add another teller? (yes/no): ";
+        string addAnotherTellerStr;
+        cin >> addAnotherTellerStr;
+        if (addAnotherTellerStr == "no")
+            break;
+
+        j++;
+    }
+
+    // Simulate serving customers
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(5, 15); // Uniform distribution between 5 and 15 minutes
+
+    while (!priorityCustomers.empty()) {
+        Customer& customer = priorityCustomers.front();
+        customer.WaitingTime = dis(gen); // Generate random waiting time
+        customer.ServiceTime = dis(gen); // Generate random service time
+        cout << "Serving high priority customer: " << customer.Name << '\n';
+        priorityCustomers.pop();
+    }
+
+    while (!customersQueue.empty()) {
+        Customer& customer = customersQueue.front();
+        customer.WaitingTime = dis(gen); // Generate random waiting time
+        customer.ServiceTime = dis(gen); // Generate random service time
+        cout << "Serving regular priority customer: " << customer.Name << '\n';
+        customersQueue.pop();
+    }
+
+    // Calculate and display metrics
+    CalculateAndDisplayMetrics(customersQueue, priorityCustomers);
+
+    return 0;
+}
